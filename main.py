@@ -4,7 +4,7 @@ from datetime import datetime,timedelta
 import time
 from hashlib import md5
 from base64 import b64encode
-from Utils import connectDB,getdata,storetoDB
+from Utils import connectDB,getdata,storetoDB,getTrendingKeywords,ScaleSERP,getAPIKey
 
 publishers = [
 #    (1,"BS"),
@@ -29,6 +29,9 @@ count=0
 
 conn = connectDB()
 cursor = conn.cursor()
+scale_serp = ScaleSERP(getAPIKey())
+
+#### Fetching RSS feeds and storing them into DB
 for pid,pname in publishers:
     cursor.execute(f"""select 
             publisher_salt,id, feed_url 
@@ -63,5 +66,33 @@ for pid,pname in publishers:
                 count = count+1
     df["summary"] = df["summary"].str[:2047]
     storetoDB(cursor,df)
-conn.commit()
+
+##### Fetching Trending keywords and storing them along with ranking and missed articles into DB
+data = getTrendingKeywords()
+
+for k in data['storySummaries']['trendingStories'][:5]:
+    for j in k['entityNames']:
+        if(not len(j)>0):
+            continue
+        dat = scale_serp.get_data(j)
+        for i in dat["organic_results"]:
+            cursor.execute(f"""INSERT INTO dev_performo.article_ranking 
+                            (rank,rank_datetime,article_id,block_position) 
+                            select {i['position']},'{datetime.now().isoformat()}',(select id from dev_performo.article_master am where link = '{i['link']}'),{i['block_position']}
+                            where exists (select 1 from dev_performo.article_master am2 where link = '{i['link']}')""")
+            cursor.execute(f"""INSERT INTO dev_performo.missed_article_ranking 
+                            (rank,rank_datetime,link,block_position) 
+                            select {i['position']},'{datetime.now().isoformat()}','{i['link']}',{i['block_position']}
+                            where not exists (select 1 from dev_performo.article_master am2 where link = '{i['link']}')""")
+        cursor.execute(
+            f"""insert into dev_performo.trends_keywords 
+                (name,firstseendate,lastseendate) 
+                select '{j}','{datetime.now().isoformat()}','{datetime.now().isoformat()}' 
+                where not exists ( select 1 from dev_performo.trends_keywords where name = '{j}');
+                update dev_performo.trends_keywords 
+                set lastseendate='{datetime.now().isoformat()}'
+                where name='{j}';""")
+        conn.commit()
+
+cursor.close()
 conn.close()

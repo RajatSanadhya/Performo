@@ -1,10 +1,14 @@
 from configparser import ConfigParser
 import psycopg2
 import psycopg2.extras
+import requests
+import json
 
 
 config = ConfigParser()
 config.read("config.ini")
+
+
 
 def connectDB():
     return psycopg2.connect(
@@ -35,3 +39,25 @@ def storetoDB(cursor,df):
         ",".join([i+"=EXCLUDED."+i for i in df.columns])), 
         df.values)
     # cur.execute("DEALLOCATE stmt")
+
+def getTrendingKeywords():
+    url = "https://trends.google.com/trends/api/realtimetrends?hl=en-US&tz=-330&cat=all&fi=0&fs=0&geo=IN&ri=300&rs=100&sort=0"
+    response = requests.get(url)
+    return json.loads(response.text[5:])
+    
+class ScaleSERP:
+    api_key = ""
+    def __init__(self,key):
+        self.api_key = key
+    
+    def get_data(self,keyword):
+        params = {
+            'api_key': self.api_key,
+            'q': keyword,
+            'num' : '10',
+            'location' : 'India'
+        }
+        return requests.get('https://api.scaleserp.com/search', params).json()
+
+def getAPIKey():
+    return config['SERP']["key"]
