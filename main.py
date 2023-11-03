@@ -7,21 +7,21 @@ from base64 import b64encode
 from Utils import connectDB,getdata,storetoDB,getTrendingKeywords,ScaleSERP,getAPIKey
 
 publishers = [
-#    (1,"BS"),
-#    (2,"CNBC"),
-#    (3,"DAJ"),
-#    (4,"FP"),
+#     (1,"BS"),
+    (2,"CNBC"),
+    (3,"DAJ"),
+    (4,"FP"),
     (5,"HT"),
-#    (6,"ITO"),
-#    (7,"ITE"),
+#     (6,"ITO"),
+    (7,"ITE"),
     (8,"ITH"),
-#    (9,"IE"),
-#    (10,"LM"),
-#    (11,"MC"),
+#     (9,"IE"),
+    (10,"LM"),
+    (11,"MC"),
     (12,"NDTV"),
-#    (13,"THIN"),
+    (13,"THIN"),
     (14,"TRIB"),
-#    (15,"TOI"),
+    (15,"TOI"),
     (16,"NEWS18")
 ]
 
