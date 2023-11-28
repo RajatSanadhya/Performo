@@ -40,6 +40,7 @@ def process_data(pub):
             publisher_salt,id, feed_url
             from dev_performo.publisher_category_mapping pcm
             where publisher_id = {pid}""")
+    print(f'{datetime.now()} - started fetching feed for publisher : {pname}')
     data = cursor.fetchall()
     df = pd.DataFrame(columns=['id', 'title', 'pubdate','link', 'pub_category_id', 'author','guid', 'summary', 'mediaurl'])
     for pub_id,idx,url in data:
@@ -68,7 +69,8 @@ def process_data(pub):
             except Exception as e:
                 count = count+1
     df["summary"] = df["summary"].str[:2047]
-    storetoDB(cursor,df)
+    print(f'{datetime.now()} - data fetching for publisher : {pname} || {df.shape[0]} articles fetched ||')
+    storetoDB(cursor,df,pname)
     conn.commit()
     cursor.close()
     conn.close()
@@ -77,14 +79,15 @@ def process_data(pub):
 
 #### Fetching RSS feeds and storing them into DB
 if __name__ == '__main__':
-    # with multiprocessing.Pool() as pool:
-    #     pool.map(process_data, list(zip(publishers)))
+    with multiprocessing.Pool() as pool:
+        pool.map(process_data, list(zip(publishers)))
     ##### Fetching Trending keywords and storing them along with ranking and missed articles into DB
+    print(f'{datetime.now()} - fetching trending keywords')
     data = getTrendingKeywords()
     conn = connectDB()
     cursor = conn.cursor()
+    print(f'{datetime.now()} - fetching results for each keyword')
     for k in data['storySummaries']['trendingStories'][:5]:
-        print(f'\n––––––––––––––––––––––––––––––––––––––––––––––––––\n{k["entityNames"]}')
         for j in k['entityNames']:
             if(not len(j)>0):
                 continue
@@ -111,11 +114,12 @@ if __name__ == '__main__':
                 conn.commit()
             except Exception as e:
                 if(dat["request_info"]["success"]==False and dat["request_info"]["credits_remaining"]==0):
-                    print(f'{datetime.now().isoformat()} –– !!!Credits Expired!!! –– Credits Used : {dat["request_info"]["credits_used"]} –– Credits Remaining : {dat["request_info"]["credits_remaining"]}')
+                    print(f'{datetime.now()} –– !!!Credits Expired!!! –– Credits Used : {dat["request_info"]["credits_used"]} –– Credits Remaining : {dat["request_info"]["credits_remaining"]}')
                     exit()
                 else:
                     raise e
+    print(f'{datetime.now()} - keywords and article ranks stored')
     cursor.close()
     conn.close()
     end = time.time()
-    print(f'Script ran in time {end-start}')
+    print(f'{datetime.now()} - Script ran in time {end-start}')

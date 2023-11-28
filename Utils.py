@@ -28,7 +28,7 @@ def getdata(pname,key,post):
         else:
             return None
 
-def storetoDB(cursor,df):
+def storetoDB(cursor,df,pname):
     # cur.execute("PREPARE stmt")
     try:
         psycopg2.extras.execute_batch(
@@ -39,7 +39,9 @@ def storetoDB(cursor,df):
             "VALUES({})".format(",".join(["%s" for _ in df.columns])),
             ",".join([i+"=EXCLUDED."+i for i in df.columns])),
             df.values)
+        print(f'{datetime.now()} - data stored to DB for publisher : {pname} || {df.shape[0]} rows stored ||')
     except Exception as e:
+        print(f'{datetime.now()} - data stored to DB for publisher : {pname} || 0 rows stored ||')
         pass
 
     # cur.execute("DEALLOCATE stmt")
