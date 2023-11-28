@@ -30,32 +30,38 @@ def getdata(pname,key,post):
 
 def storetoDB(cursor,df):
     # cur.execute("PREPARE stmt")
-    psycopg2.extras.execute_batch(
-        cursor, 
-        "INSERT INTO {} ({}) {} ON CONFLICT(id) DO UPDATE SET {} where article_master.pubdate<>Excluded.pubdate".format(
-        "dev_performo.article_master",
-        ",".join(df.columns),
-        "VALUES({})".format(",".join(["%s" for _ in df.columns])),
-        ",".join([i+"=EXCLUDED."+i for i in df.columns])), 
-        df.values)
+    try:
+        psycopg2.extras.execute_batch(
+            cursor,
+            "INSERT INTO {} ({}) {} ON CONFLICT(id) DO UPDATE SET {} where article_master.pubdate<>Excluded.pubdate".format(
+            "dev_performo.article_master",
+            ",".join(df.columns),
+            "VALUES({})".format(",".join(["%s" for _ in df.columns])),
+            ",".join([i+"=EXCLUDED."+i for i in df.columns])),
+            df.values)
+    except Exception as e:
+        pass
+
     # cur.execute("DEALLOCATE stmt")
 
 def getTrendingKeywords():
     url = "https://trends.google.com/trends/api/realtimetrends?hl=en-US&tz=-330&cat=all&fi=0&fs=0&geo=IN&ri=300&rs=100&sort=0"
     response = requests.get(url)
     return json.loads(response.text[5:])
-    
+
 class ScaleSERP:
     api_key = ""
     def __init__(self,key):
         self.api_key = key
-    
+
     def get_data(self,keyword):
         params = {
             'api_key': self.api_key,
             'q': keyword,
+            'search_type': 'news',
             'num' : '10',
-            'location' : 'India'
+            'google_domain': 'google.co.in',
+            'gl': 'in',
         }
         return requests.get('https://api.scaleserp.com/search', params).json()
 
